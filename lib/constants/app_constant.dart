@@ -1,6 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
 class AppConstants {
   static final String baseUrl =
   const String.fromEnvironment('BASE_URL', defaultValue: '')
@@ -9,10 +8,10 @@ class AppConstants {
       : (dotenv.env['BASE_URL'] ?? '');
 
   static final String tokenKey =
-  const String.fromEnvironment('TOKEN_KEY', defaultValue: '')
+  const String.fromEnvironment('API_KEY', defaultValue: '')
       .isNotEmpty
-      ? const String.fromEnvironment('TOKEN_KEY')
-      : (dotenv.env['TOKEN_KEY'] ?? '');
+      ? const String.fromEnvironment('API_KEY')
+      : (dotenv.env['API_KEY'] ?? '');
 
   static const accessToken = 'accessToken';
   static const refreshToken = 'backendToken';
