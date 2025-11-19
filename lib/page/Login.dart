@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       const SizedBox(height: 40),
 
                       // Login button with BLoC
-                      BlocConsumer<LoginBloc, LoginState>(
+          BlocConsumer<LoginBloc, LoginState>(
                         listener: (context, state) {
                           if (state is LoginSuccess) {
                             Navigator.pushReplacementNamed(
@@ -170,11 +170,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             label: 'Log In',
                             isLoading: state is LoginLoading,
                             onPressed: () {
-                              final requestBody = LoginRequestModel(
-                                email: emailController.text,
-                                password: passwordController.text,
-                              );
-                              context.read<LoginBloc>().add(Login(requestBody));
+            _attemptLogin(context);
                             },
                             isDark: true,
                           );
@@ -360,5 +356,29 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     passwordController.dispose();
     _fadeController.dispose();
     super.dispose();
+  }
+
+  void _attemptLogin(BuildContext context) {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      final msg = email.isEmpty && password.isEmpty
+          ? 'Email dan password wajib diisi'
+          : email.isEmpty
+              ? 'Email wajib diisi'
+              : 'Password wajib diisi';
+      showDialog(
+        context: context,
+        builder: (context) => ErrorDialog(message: msg),
+      );
+      return;
+    }
+
+    final requestBody = LoginRequestModel(
+      email: email,
+      password: password,
+    );
+    context.read<LoginBloc>().add(Login(requestBody));
   }
 }

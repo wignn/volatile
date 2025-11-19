@@ -16,18 +16,29 @@ class SignupRepository {
     } catch (e) {
       print("🚨 Repository error: $e");
       if (e is DioException) {
-        switch (e.response?.statusCode) {
+        // Prefer server-provided message if present
+        final statusCode = e.response?.statusCode;
+        String? serverMessage;
+        if (e.response?.data is Map && e.response?.data['message'] != null) {
+          serverMessage = e.response?.data['message'].toString();
+        }
+
+        if (statusCode == 409) {
+          return Left(serverMessage ?? 'Email already registered');
+        }
+
+        switch (statusCode) {
           case 400:
-            return Left('Username atau password tidak valid');
+            return Left(serverMessage ?? 'Username atau password tidak valid');
           case 401:
-            return Left('Username atau password salah');
+            return Left(serverMessage ?? 'Username atau password salah');
           case 404:
-            return Left('Server tidak ditemukan');
+            return Left(serverMessage ?? 'Server tidak ditemukan');
           case 500:
-            return Left('Server error, coba lagi nanti');
+            return Left(serverMessage ?? 'Server error, coba Lagi nanti');
           default:
             return Left(
-              'Gagal registrasi: ${e.response?.statusCode ?? 'Unknown error'}',
+              serverMessage ?? 'Gagal registrasi: ${statusCode ?? 'Unknown error'}',
             );
         }
       } else if (e is Exception) {

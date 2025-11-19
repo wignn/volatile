@@ -41,7 +41,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --dart-define=BASE_URL=${{ secrets.BASE_URL }} --dart-define=TOKEN_KEY=${{ secrets.TOKEN_KEY }}
+        run: flutter build apk --release --dart-define=BASE_URL=${{ secrets.BASE_URL }} --dart-define=API_KEY=${{ secrets.TOKEN_KEY }}
 
       - name: Build App Bundle
         run: flutter build appbundle --release --dart-define=BASE_URL=${{ secrets.BASE_URL }} --dart-define=TOKEN_KEY=${{ secrets.TOKEN_KEY }}

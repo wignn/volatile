@@ -49,23 +49,35 @@ class ApiService {
     );
   }
 
+
   Future<AuthResponseModel> signUp(RegisterRequestModel requestBody) async {
-    final response = await dio.post(
-      '$baseURL/api/v1/register',
-      data: requestBody.toJson(),
-      options: Options(
-        headers: {'Content-Type': 'application/json', 'x-api-key': apiKey},
-        validateStatus: (status) {
-          return status! < 500;
-        },
-      ),
-    );
-    if (response.statusCode == 200) {
-      return AuthResponseModel.fromJson(response.data);
-    } else {
-      throw Exception(
-        'Server returned status ${response.statusCode}: ${response.statusMessage}',
+    try {
+      final response = await dio.post(
+        '$baseURL/api/v1/register',
+        data: requestBody.toJson(),
+        options: Options(
+          headers: {'Content-Type': 'application/json', 'x-api-key': apiKey},
+          validateStatus: (status) {
+            return status! < 500;
+          },
+        ),
       );
+
+      if (response.statusCode == 200) {
+        return AuthResponseModel.fromJson(response.data);
+      }
+      String serverMessage = 'Server returned status ${response.statusCode}: ${response.statusMessage}';
+      if (response.data is Map && response.data['message'] != null) {
+        serverMessage = response.data['message'].toString();
+      }
+
+      throw Exception(serverMessage);
+    } on DioException catch (e) {
+      String serverMessage = e.message ?? 'Network error';
+      if (e.response?.data is Map && e.response?.data['message'] != null) {
+        serverMessage = e.response?.data['message'].toString() ?? serverMessage;
+      }
+      throw Exception(serverMessage);
     }
   }
 

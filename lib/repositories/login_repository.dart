@@ -12,6 +12,7 @@ class LoginRepository {
       ) async {
     try {
       final result = await apiService.login(requestBody);
+      print(result);
       return Right(result);
     } catch (e) {
       print(" Repository error: $e");
