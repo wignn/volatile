@@ -5,15 +5,16 @@ permissions:
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   release:
     types: [ published ]
 
+
 jobs:
   build-android:
-    if: github.repository == 'wignn/volatile'
+    if: github.repository == 'wignn/volatile' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
 
