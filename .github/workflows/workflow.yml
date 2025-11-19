@@ -33,24 +33,14 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create dummy .env file for production
-        run: |
-          echo "Creating .env file for production build..."
-          echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
-          echo "API_KEY=${{ secrets.TOKEN_KEY }}" >> .env
-          echo ".env file created successfully"
-          echo "Content preview (masked):"
-          echo "BASE_URL=***"
-          echo "API_KEY=***"
-
       - name: Get dependencies
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --dart-define=BASE_URL=${{ secrets.BASE_URL }} --dart-define=API_KEY=${{ secrets.TOKEN_KEY }}
+        run: flutter build apk --release --dart-define=BASE_URL=${{ secrets.BASE_URL }} --dart-define=TOKEN_KEY=${{ secrets.TOKEN_KEY }}
 
       - name: Build App Bundle
-        run: flutter build appbundle --release --dart-define=BASE_URL=${{ secrets.BASE_URL }} --dart-define=API_KEY=${{ secrets.TOKEN_KEY }}
+        run: flutter build appbundle --release --dart-define=BASE_URL=${{ secrets.BASE_URL }} --dart-define=TOKEN_KEY=${{ secrets.TOKEN_KEY }}
 
       - name: Rename APK
         run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/volatile.apk
@@ -69,14 +59,6 @@ jobs:
         with:
           name: release-aab
           path: build/app/outputs/bundle/release/volatile.aab
-
-      - name: Cleanup .env file
-        if: always()
-        run: |
-          if [ -f .env ]; then
-            rm .env
-            echo ".env file removed"
-          fi
 
   release:
     needs: [build-android]
