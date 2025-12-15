@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:vasvault/constants/app_constant.dart';
 import 'package:vasvault/models/auth_response.dart';
+import 'package:vasvault/models/file_item.dart';
 import 'package:vasvault/models/file_upload_response.dart';
 import 'package:vasvault/models/login_request.dart';
 import 'package:vasvault/models/register_request.dart';
@@ -141,5 +142,69 @@ class ApiService {
       serverMessage = response.data['message'].toString();
     }
     throw Exception(serverMessage);
+  }
+
+  Future<List<FileItem>> getFiles() async {
+    final session = SessionManager();
+    String accessToken = await session.getAccessToken();
+
+    print('API: Fetching files from $baseURL/api/v1/files');
+    print('API: Access token: ${accessToken.substring(0, 20)}...');
+
+    final response = await dio.get(
+      '$baseURL/api/v1/files',
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': 'Bearer $accessToken',
+        },
+        validateStatus: (status) {
+          return status! < 500;
+        },
+      ),
+    );
+
+    print('API: Response status: ${response.statusCode}');
+    print('API: Response data type: ${response.data.runtimeType}');
+    print('API: Response data: ${response.data}');
+
+    if (response.statusCode == 200) {
+      try {
+        List<dynamic> data;
+        if (response.data is Map) {
+          // Check berbagai kemungkinan key di Map
+          final map = response.data as Map<String, dynamic>;
+          print('API: Response keys: ${map.keys}');
+
+          if (map['files'] != null) {
+            data = map['files'] as List<dynamic>;
+          } else if (map['data'] != null && map['data'] is List) {
+            data = map['data'] as List<dynamic>;
+          } else if (map['items'] != null) {
+            data = map['items'] as List<dynamic>;
+          } else {
+            // Jika tidak ada key yang cocok, return empty list
+            print('API: No files found in response, returning empty list');
+            return [];
+          }
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+        } else {
+          throw Exception(
+            'Unexpected response format: ${response.data.runtimeType}',
+          );
+        }
+
+        print('API: Parsing ${data.length} files');
+        return data.map((json) => FileItem.fromJson(json)).toList();
+      } catch (e) {
+        print('API: Error parsing files: $e');
+        rethrow;
+      }
+    }
+    throw Exception(
+      'Server returned status ${response.statusCode}: ${response.statusMessage}',
+    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:vasvault/authWrapper.dart';
 import 'package:vasvault/bloc/login_bloc.dart';
 import 'package:vasvault/bloc/register_bloc.dart';
+import 'package:vasvault/bloc/vault_bloc.dart';
 import 'package:vasvault/routes.dart';
 
 Future<void> main() async {
@@ -22,6 +23,7 @@ class MainApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => LoginBloc()),
         BlocProvider(create: (_) => RegisterBloc()),
+        BlocProvider(create: (_) => VaultBloc()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
