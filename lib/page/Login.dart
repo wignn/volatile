@@ -5,6 +5,7 @@ import 'package:vasvault/bloc/login_bloc.dart';
 import 'package:vasvault/models/login_request.dart';
 import 'package:vasvault/page/Register.dart';
 import 'package:vasvault/routes.dart';
+import 'package:vasvault/theme/app_colors.dart';
 import 'package:vasvault/utils/session_meneger.dart';
 import 'package:vasvault/widgets/error_dialog.dart';
 
@@ -34,9 +35,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
     _fadeController.forward();
   }
@@ -57,26 +59,54 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
-          // Background with gradient
+          // Background with dark gradient matching home theme
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFFE8D5C4),
-                  Color(0xFFD4C1B0),
-                  Color(0xFFC4B5A8),
+                  AppColors.darkBackground,
+                  AppColors.darkSurface,
+                  AppColors.darkSurfaceLight,
                 ],
               ),
             ),
           ),
 
-          // Blur overlay for glassmorphism effect
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          // Decorative circles
+          Positioned(
+            top: -100,
+            right: -100,
             child: Container(
-              color: Colors.white.withOpacity(0.1),
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.3),
+                    AppColors.primary.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -150,
+            left: -100,
+            child: Container(
+              width: 350,
+              height: 350,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primaryLight.withValues(alpha: 0.2),
+                    AppColors.primaryLight.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
             ),
           ),
 
@@ -91,35 +121,70 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     children: [
                       const SizedBox(height: 60),
 
+                      // App Logo/Icon
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.cloud_outlined,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
                       // Title
-                      const Text(
-                        'Sign In',
+                      Text(
+                        'VasVault',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w300,
-                          color: Colors.white,
-                          height: 1.2,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkText,
+                          letterSpacing: 1,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Secure Cloud Storage',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.darkTextSecondary,
                           letterSpacing: 0.5,
                         ),
                       ),
 
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 48),
 
-                      // Username/Email field
-                      _buildGlassTextField(
+                      // Email field
+                      _buildTextField(
                         controller: emailController,
                         hintText: 'Email',
                         textKey: const Key('Email'),
+                        prefixIcon: Icons.email_outlined,
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
-                      // Password field with forgot button
-                      _buildGlassTextField(
+                      // Password field
+                      _buildTextField(
                         controller: passwordController,
                         hintText: 'Password',
                         textKey: const Key('Password'),
+                        prefixIcon: Icons.lock_outlined,
                         isPassword: true,
                         isObscure: isObscure,
                         onToggleObscure: () {
@@ -127,30 +192,32 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             isObscure = !isObscure;
                           });
                         },
-                        suffixWidget: TextButton(
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Forgot password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
                           onPressed: () {
                             // Handle forgot password
                           },
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size(50, 30),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'Forgot?',
+                          child: Text(
+                            'Forgot Password?',
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: AppColors.primary,
                               fontSize: 14,
-                              fontWeight: FontWeight.w400,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 24),
 
                       // Login button with BLoC
-          BlocConsumer<LoginBloc, LoginState>(
+                      BlocConsumer<LoginBloc, LoginState>(
                         listener: (context, state) {
                           if (state is LoginSuccess) {
                             Navigator.pushReplacementNamed(
@@ -166,29 +233,28 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           }
                         },
                         builder: (context, state) {
-                          return _buildGlassButton(
-                            label: 'Log In',
+                          return _buildPrimaryButton(
+                            label: 'Sign In',
                             isLoading: state is LoginLoading,
                             onPressed: () {
-            _attemptLogin(context);
+                              _attemptLogin(context);
                             },
-                            isDark: true,
                           );
                         },
                       ),
 
-                      const SizedBox(height: 80),
+                      const SizedBox(height: 48),
 
                       // Sign up section
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             'Don\'t have an account?  ',
                             style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w300,
+                              fontSize: 14,
+                              color: AppColors.darkTextSecondary,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           GestureDetector(
@@ -200,14 +266,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                 ),
                               );
                             },
-                            child: const Text(
+                            child: Text(
                               'Sign Up',
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
+                                color: AppColors.primary,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Colors.white,
                               ),
                             ),
                           ),
@@ -226,124 +290,108 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildGlassTextField({
+  Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
     required Key textKey,
+    required IconData prefixIcon,
     bool isPassword = false,
     bool isObscure = false,
     VoidCallback? onToggleObscure,
-    Widget? suffixWidget,
   }) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1,
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.darkBorder, width: 1),
+      ),
+      child: TextField(
+        key: textKey,
+        controller: controller,
+        obscureText: isPassword && isObscure,
+        style: TextStyle(
+          color: AppColors.darkText,
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+        ),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(
+            color: AppColors.darkTextSecondary,
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
           ),
-          child: TextField(
-            key: textKey,
-            controller: controller,
-            obscureText: isPassword && isObscure,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-            ),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.6),
-                fontSize: 16,
-                fontWeight: FontWeight.w300,
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 18,
-              ),
-              suffixIcon: isPassword
-                  ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (suffixWidget != null) suffixWidget,
-                  IconButton(
-                    onPressed: onToggleObscure,
-                    icon: Icon(
-                      isObscure
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.white.withOpacity(0.6),
-                      size: 22,
-                    ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
+          prefixIcon: Icon(
+            prefixIcon,
+            color: AppColors.darkTextSecondary,
+            size: 22,
+          ),
+          suffixIcon: isPassword
+              ? IconButton(
+                  onPressed: onToggleObscure,
+                  icon: Icon(
+                    isObscure
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: AppColors.darkTextSecondary,
+                    size: 22,
                   ),
-                ],
-              )
-                  : null,
-            ),
-          ),
+                )
+              : null,
         ),
       ),
     );
   }
 
-  Widget _buildGlassButton({
+  Widget _buildPrimaryButton({
     required String label,
     required VoidCallback onPressed,
     bool isLoading = false,
-    bool isDark = false,
   }) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          width: double.infinity,
-          height: 56,
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.black.withOpacity(0.4)
-                : Colors.white.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1,
-            ),
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              key: const Key('LoginButton'),
-              onTap: isLoading ? null : onPressed,
-              borderRadius: BorderRadius.circular(30),
-              child: Center(
-                child: isLoading
-                    ? SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const Key('LoginButton'),
+          onTap: isLoading ? null : onPressed,
+          borderRadius: BorderRadius.circular(16),
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                )
-                    : Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ),
           ),
         ),
       ),
@@ -366,8 +414,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       final msg = email.isEmpty && password.isEmpty
           ? 'Email dan password wajib diisi'
           : email.isEmpty
-              ? 'Email wajib diisi'
-              : 'Password wajib diisi';
+          ? 'Email wajib diisi'
+          : 'Password wajib diisi';
       showDialog(
         context: context,
         builder: (context) => ErrorDialog(message: msg),
@@ -375,10 +423,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       return;
     }
 
-    final requestBody = LoginRequestModel(
-      email: email,
-      password: password,
-    );
+    final requestBody = LoginRequestModel(email: email, password: password);
     context.read<LoginBloc>().add(Login(requestBody));
   }
 }

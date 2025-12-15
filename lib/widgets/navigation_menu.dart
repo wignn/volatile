@@ -4,6 +4,7 @@ import 'package:vasvault/page/Profile.dart';
 import 'package:vasvault/page/Vault.dart';
 import 'package:vasvault/theme/app_colors.dart';
 import 'package:vasvault/page/Workspace.dart';
+import 'package:vasvault/widgets/upload_bottom_sheet.dart';
 
 class NavigationMenu extends StatefulWidget {
   const NavigationMenu({super.key});
@@ -27,11 +28,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
     const ProfilePage(),
   ];
 
-  Widget _buildNavItem(
-    int index,
-    IconData icon,
-    String label,
-  ) {
+  Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = index == _selectedIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = isSelected
@@ -74,16 +71,11 @@ class _NavigationMenuState extends State<NavigationMenu> {
       body: IndexedStack(index: _selectedIndex, children: _pages),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Action untuk FAB (misal: tambah transaksi)
-          // Navigator.push(...) atau showModalBottomSheet(...)
+          UploadBottomSheet.show(context);
         },
         backgroundColor: AppColors.primary,
         elevation: 4,
-        child: const Icon(
-          Icons.add,
-          size: 32,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.add, size: 32, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
