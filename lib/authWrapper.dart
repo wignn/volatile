@@ -58,6 +58,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
+      
       body: Center(child: CircularProgressIndicator()),
     );
   }
