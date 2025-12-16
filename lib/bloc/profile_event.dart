@@ -12,11 +12,13 @@ final class StartEditingProfile extends ProfileEvent {}
 final class CancelEditingProfile extends ProfileEvent {}
 
 final class UpdateProfileEvent extends ProfileEvent {
-  final String fullName;
-  final String? profilePicture;
+  final String? username;
+  final String? email;
+  final String? password;
 
   const UpdateProfileEvent({
-    required this.fullName,
-    this.profilePicture,
+    this.username,
+    this.email,
+    this.password,
   });
 }

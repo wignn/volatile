@@ -58,14 +58,19 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       emit(ProfileUpdating(currentState.profile));
 
       final request = UpdateProfileRequest(
-        fullName: event.fullName,
-        profilePicture: event.profilePicture,
+        username: event.username,
+        email: event.email,
+        password: event.password,
       );
 
       final result = await _repository.updateProfile(request);
       result.fold(
         (error) => emit(ProfileError(error, profile: currentState.profile)),
-        (updatedProfile) => emit(ProfileUpdated(updatedProfile)),
+        (updatedProfile) {
+          emit(ProfileUpdated(updatedProfile));
+          // Transition back to ProfileLoaded after showing success
+          emit(ProfileLoaded(updatedProfile));
+        },
       );
     }
   }

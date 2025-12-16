@@ -1,16 +1,19 @@
 class UpdateProfileRequest {
-  final String fullName;
-  final String? profilePicture;
+  final String? username;
+  final String? email;
+  final String? password;
 
   UpdateProfileRequest({
-    required this.fullName,
-    this.profilePicture,
+    this.username,
+    this.email,
+    this.password,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'full_name': fullName,
-      if (profilePicture != null) 'profile_picture': profilePicture,
+      if (username != null) 'username': username,
+      if (email != null) 'email': email,
+      if (password != null) 'password': password,
     };
   }
 }

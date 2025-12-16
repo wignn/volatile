@@ -180,17 +180,19 @@ class ApiService {
   }
 
   Future<ProfileResponse> updateProfile({
-    required String fullName,
-    String? profilePicture,
+    String? username,
+    String? email,
+    String? password,
   }) async {
     final session = SessionManager();
     final accessToken = await session.getAccessToken();
 
     final response = await dio.put(
-      '$baseURL/api/profile',
+      '$baseURL/api/v1/profile',
       data: {
-        'full_name': fullName,
-        if (profilePicture != null) 'profile_picture': profilePicture,
+        if (username != null) 'username': username,
+        if (email != null) 'email': email,
+        if (password != null) 'password': password,
       },
       options: Options(
         headers: {

@@ -20,8 +20,9 @@ class ProfileRepository {
   ) async {
     try {
       final profile = await _apiService.updateProfile(
-        fullName: request.fullName,
-        profilePicture: request.profilePicture,
+        username: request.username,
+        email: request.email,
+        password: request.password,
       );
       return Right(profile);
     } catch (e) {

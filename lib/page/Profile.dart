@@ -15,21 +15,18 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late TextEditingController _fullNameController;
   late TextEditingController _emailController;
   late TextEditingController _usernameController;
 
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController();
     _emailController = TextEditingController();
     _usernameController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _fullNameController.dispose();
     _emailController.dispose();
     _usernameController.dispose();
     super.dispose();
@@ -161,19 +158,10 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildInfoRow(
-            label: 'Full Name',
-            value: profile?.fullName ?? '',
-            controller: _fullNameController,
-            isEditing: isEditing,
-            icon: Icons.person_outline,
-          ),
-          const SizedBox(height: 16),
-
-          _buildInfoRow(
             label: 'Username',
             value: profile?.username ?? '',
             controller: _usernameController,
-            isEditing: false,
+            isEditing: isEditing,
             icon: Icons.alternate_email,
           ),
           const SizedBox(height: 16),
@@ -182,7 +170,7 @@ class _ProfilePageState extends State<ProfilePage> {
             label: 'Email',
             value: profile?.email ?? '',
             controller: _emailController,
-            isEditing: false,
+            isEditing: isEditing,
             icon: Icons.email_outlined,
           ),
           const SizedBox(height: 16),
@@ -324,8 +312,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 : () {
                     context.read<ProfileBloc>().add(
                       UpdateProfileEvent(
-                        fullName: _fullNameController.text,
-                        profilePicture: null,
+                        username: _usernameController.text,
+                        email: _emailController.text,
                       ),
                     );
                   },
@@ -473,7 +461,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _updateControllers(ProfileResponse profile) {
-    _fullNameController.text = profile.fullName;
     _usernameController.text = profile.username;
     _emailController.text = profile.email;
   }
