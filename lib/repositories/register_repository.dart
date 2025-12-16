@@ -5,48 +5,45 @@ import 'package:vasvault/models/register_request.dart';
 import 'package:vasvault/services/api.dart';
 
 class SignupRepository {
-  final apiService = ApiService();
+  final _apiService = ApiService();
 
   Future<Either<String, AuthResponseModel>> signup(
-      RegisterRequestModel requestBody,
-      ) async {
+    RegisterRequestModel requestBody,
+  ) async {
     try {
-      final result = await apiService.signUp(requestBody);
+      final result = await _apiService.signUp(requestBody);
       return Right(result);
+    } on DioException catch (e) {
+      return Left(_handleDioError(e));
     } catch (e) {
-      print("🚨 Repository error: $e");
-      if (e is DioException) {
-        // Prefer server-provided message if present
-        final statusCode = e.response?.statusCode;
-        String? serverMessage;
-        if (e.response?.data is Map && e.response?.data['message'] != null) {
-          serverMessage = e.response?.data['message'].toString();
-        }
+      // Handle Exception from ApiService
+      final message = e.toString().replaceFirst('Exception: ', '');
+      return Left(message);
+    }
+  }
 
-        if (statusCode == 409) {
-          return Left(serverMessage ?? 'Email already registered');
-        }
+  String _handleDioError(DioException e) {
+    final statusCode = e.response?.statusCode;
+    String? serverMessage;
 
-        switch (statusCode) {
-          case 400:
-            return Left(serverMessage ?? 'Username atau password tidak valid');
-          case 401:
-            return Left(serverMessage ?? 'Username atau password salah');
-          case 404:
-            return Left(serverMessage ?? 'Server tidak ditemukan');
-          case 500:
-            return Left(serverMessage ?? 'Server error, coba Lagi nanti');
-          default:
-            return Left(
-              serverMessage ?? 'Gagal registrasi: ${statusCode ?? 'Unknown error'}',
-            );
-        }
-      } else if (e is Exception) {
-        // Jika ApiService melempar Exception (mis. 'Server returned status ...'), kembalikan pesannya
-        final message = e.toString().replaceFirst('Exception: ', '');
-        return Left(message);
-      }
-      return Left('Koneksi internet bermasalah');
+    if (e.response?.data is Map && e.response?.data['message'] != null) {
+      serverMessage = e.response?.data['message'].toString();
+    }
+
+    switch (statusCode) {
+      case 400:
+        return serverMessage ?? 'Data tidak valid';
+      case 401:
+        return serverMessage ?? 'Tidak terautentikasi';
+      case 404:
+        return serverMessage ?? 'Server tidak ditemukan';
+      case 409:
+        return serverMessage ?? 'Email sudah terdaftar';
+      case 500:
+        return serverMessage ?? 'Server error, coba lagi nanti';
+      default:
+        return serverMessage ??
+            'Gagal registrasi: ${statusCode ?? 'Unknown error'}';
     }
   }
 }

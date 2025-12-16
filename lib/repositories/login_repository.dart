@@ -5,34 +5,33 @@ import 'package:vasvault/models/login_request.dart';
 import 'package:vasvault/services/api.dart';
 
 class LoginRepository {
-  final apiService = ApiService();
+  final _apiService = ApiService();
 
   Future<Either<String, AuthResponseModel>> login(
-      LoginRequestModel requestBody,
-      ) async {
+    LoginRequestModel requestBody,
+  ) async {
     try {
-      final result = await apiService.login(requestBody);
-      print(result);
+      final result = await _apiService.login(requestBody);
       return Right(result);
+    } on DioException catch (e) {
+      return Left(_handleDioError(e));
     } catch (e) {
-      print(" Repository error: $e");
-      if (e is DioException) {
-        switch (e.response?.statusCode) {
-          case 400:
-            return Left('Username atau password tidak valid');
-          case 401:
-            return Left('Username atau password salah');
-          case 404:
-            return Left('Server tidak ditemukan');
-          case 500:
-            return Left('Server error, coba lagi nanti');
-          default:
-            return Left(
-              'Gagal login: ${e.response?.statusCode ?? 'Unknown error'}',
-            );
-        }
-      }
       return Left('Koneksi internet bermasalah');
+    }
+  }
+
+  String _handleDioError(DioException e) {
+    switch (e.response?.statusCode) {
+      case 400:
+        return 'Username atau password tidak valid';
+      case 401:
+        return 'Username atau password salah';
+      case 404:
+        return 'Server tidak ditemukan';
+      case 500:
+        return 'Server error, coba lagi nanti';
+      default:
+        return 'Gagal login: ${e.response?.statusCode ?? 'Unknown error'}';
     }
   }
 }
