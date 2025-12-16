@@ -8,36 +8,32 @@ import '../utils/session_meneger.dart';
 import 'package:flutter/material.dart';
 import 'package:vasvault/models/workspace_file_model.dart';
 
-
 class WorkspaceService {
-
   final String baseUrl = '${AppConstants.baseUrl}/api/v1';
 
   final Dio _dio = Dio();
 
   WorkspaceService() {
-
     _dio.options.baseUrl = baseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
 
-
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('access_token');
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        return handler.next(options);
-      },
-      onError: (DioException e, handler) {
-
-        return handler.next(e);
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('access_token');
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+        onError: (DioException e, handler) {
+          return handler.next(e);
+        },
+      ),
+    );
   }
-
 
   Future<List<Workspace>> getWorkspaces({String query = ''}) async {
     final session = SessionManager();
@@ -61,20 +57,17 @@ class WorkspaceService {
             'x-api-key': AppConstants.tokenKey,
           },
         ),
-
       );
 
       final List result = response.data['data'] ?? [];
 
       return result.map((e) => Workspace.fromJson(e)).toList();
     } on DioException catch (e) {
-
       throw Exception(e.response?.data['message'] ?? 'Terjadi kesalahan');
     }
   }
 
   Future<bool> createWorkspace(String name, String description) async {
-
     final session = SessionManager();
     final String? token = await session.getAccessToken();
 
@@ -84,13 +77,9 @@ class WorkspaceService {
     }
 
     try {
-
       await _dio.post(
         '/workspaces',
-        data: {
-          'name': name,
-          'description': description,
-        },
+        data: {'name': name, 'description': description},
         options: Options(
           headers: {
             'Content-Type': 'application/json',
@@ -121,12 +110,8 @@ class WorkspaceService {
     final String? token = await session.getAccessToken();
 
     try {
-
       final response = await _dio.get(
-        '/files',
-        queryParameters: {
-          'workspace_id': workspaceId,
-        },
+        '/workspaces/$workspaceId/files',
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
@@ -137,9 +122,7 @@ class WorkspaceService {
 
       if (response.data['data'] != null) {
         final List result = response.data['data'];
-
-        debugPrint('DATA SERVER: ${result.first}');
-
+        debugPrint('DATA SERVER: $result');
         return result.map((e) => WorkspaceFile.fromJson(e)).toList();
       }
       return [];
@@ -151,10 +134,10 @@ class WorkspaceService {
 
   Future<void> updateWorkspace(int id, String name, String description) async {
     try {
-      await _dio.put('/workspaces/$id', data: {
-        'name': name,
-        'description': description,
-      });
+      await _dio.put(
+        '/workspaces/$id',
+        data: {'name': name, 'description': description},
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e));
     }
@@ -195,7 +178,6 @@ class WorkspaceService {
       );
 
       return true;
-
     } on DioException catch (e) {
       debugPrint('--- ERROR UPLOAD ---');
       debugPrint('URL: ${e.requestOptions.path}');
@@ -208,13 +190,11 @@ class WorkspaceService {
     }
   }
 
-
   Future<bool> deleteFile(int fileId) async {
     final session = SessionManager();
     final String? token = await session.getAccessToken();
 
     try {
-
       await _dio.delete(
         '/files/$fileId',
         options: Options(
@@ -240,11 +220,7 @@ class WorkspaceService {
     try {
       await _dio.post(
         '/workspaces/$workspaceId/members',
-        data: {
-          'email': email,
-
-          'role': 'viewer',
-        },
+        data: {'email': email, 'role': 'viewer'},
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
@@ -283,14 +259,17 @@ class WorkspaceService {
       final List result = response.data['data'] ?? [];
 
       return result.map((e) => WorkspaceMember.fromJson(e)).toList();
-
     } catch (e) {
       debugPrint('Gagal ambil list member: $e');
       return [];
     }
   }
 
-  Future<bool> updateMemberRole(int workspaceId, int userId, String newRole) async {
+  Future<bool> updateMemberRole(
+    int workspaceId,
+    int userId,
+    String newRole,
+  ) async {
     final session = SessionManager();
     final String? token = await session.getAccessToken();
 
@@ -299,9 +278,7 @@ class WorkspaceService {
     try {
       await _dio.put(
         '/workspaces/$workspaceId/members/$userId',
-        data: {
-          'role': newRole,
-        },
+        data: {'role': newRole},
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
@@ -323,7 +300,6 @@ class WorkspaceService {
       throw Exception(_handleError(e));
     }
   }
-
 
   String _handleError(DioException e) {
     if (e.response != null) {

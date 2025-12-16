@@ -25,8 +25,7 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
   final WorkspaceService _service = WorkspaceService();
   final SessionManager _sessionManager = SessionManager();
   late Future<List<WorkspaceFile>> _filesFuture;
-  String _currentUserRole = 'viewer';
-
+  String _currentUserRole = 'owner';
 
   @override
   void initState() {
@@ -42,36 +41,36 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
   }
 
   Future<void> _fetchCurrentUserRole() async {
-
     final currentUserId = await _sessionManager.getUserId();
-
+    print('Current User ID: $currentUserId');
     if (currentUserId == null) return;
 
     try {
-
       final members = await _service.getWorkspaceMembers(widget.workspace.id);
 
       final userMember = members.firstWhere(
-            (member) => member.id == currentUserId,
+        (member) => member.id == currentUserId,
 
-        orElse: () => WorkspaceMember(id: currentUserId, email: '', role: 'viewer'),
+        orElse: () =>
+            WorkspaceMember(id: currentUserId, email: '', role: 'viewer'),
       );
 
       if (mounted) {
         setState(() {
           _currentUserRole = userMember.role;
-          debugPrint('Peran pengguna saat ini di Workspace ID ${widget.workspace.id}: $_currentUserRole');
+          debugPrint(
+            'Peran pengguna saat ini di Workspace ID ${widget.workspace.id}: $_currentUserRole',
+          );
         });
       }
     } catch (e) {
       debugPrint("Gagal fetch role: $e");
-
     }
   }
 
   Future<void> _openFile(String url) async {
     final Uri uri = Uri.parse(url);
-    debugPrint("Mencoba buka URL: $url"); // Cek log kalau gagal
+    debugPrint("Mencoba buka URL: $url"); 
 
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
@@ -105,7 +104,10 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
                   _refreshFiles();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Gagal menghapus file'), backgroundColor: Colors.red),
+                    const SnackBar(
+                      content: Text('Gagal menghapus file'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }
@@ -116,6 +118,22 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
         ],
       ),
     );
+  }
+
+  IconData _getFileIcon(String mimeType) {
+    if (mimeType.startsWith('image/')) return Icons.image;
+    if (mimeType.startsWith('video/')) return Icons.video_file;
+    if (mimeType.startsWith('audio/')) return Icons.audio_file;
+    if (mimeType.contains('pdf')) return Icons.picture_as_pdf;
+    if (mimeType.contains('word') || mimeType.contains('document'))
+      return Icons.description;
+    if (mimeType.contains('excel') || mimeType.contains('spreadsheet'))
+      return Icons.table_chart;
+    if (mimeType.contains('zip') ||
+        mimeType.contains('rar') ||
+        mimeType.contains('archive'))
+      return Icons.folder_zip;
+    return Icons.insert_drive_file;
   }
 
   String _formatSize(int bytes) {
@@ -129,64 +147,83 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
       appBar: AppBar(
-        title: Text(widget.workspace.name, style: TextStyle(color: isDark ? AppColors.darkText : AppColors.lightText, fontWeight: FontWeight.bold)),
+        title: Text(
+          widget.workspace.name,
+          style: TextStyle(
+            color: isDark ? AppColors.darkText : AppColors.lightText,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: isDark ? AppColors.darkText : AppColors.lightText),
+        iconTheme: IconThemeData(
+          color: isDark ? AppColors.darkText : AppColors.lightText,
+        ),
 
         actions: [
-
           FutureBuilder(
-          future: _filesFuture,
-          builder: (context, snapshot) {
-
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)));
-            }
-            final canManageMembers = _currentUserRole == 'owner' || _currentUserRole == 'admin';
-
-            return Row(
-              children: [
-
-                IconButton(
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
-                  tooltip: 'Tambah Anggota',
-                  onPressed: canManageMembers ? () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddMemberPage(workspace: widget.workspace),
-                      ),
-                    );
-
-                    if (result == true) {
-                      _refreshFiles();
-                      _fetchCurrentUserRole();
-                    }
-                  } : null,
-                ),
-
-                if (canManageMembers)
-                  IconButton(
-                    icon: const Icon(Icons.group_outlined),
-                    tooltip: 'Kelola Anggota',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ManageMembersPage(
-                            workspaceId: widget.workspace.id,
-                            currentUserRole: _currentUserRole,
-                          ),
-                        ),
-                      );
-                    },
+            future: _filesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-              ],
-            );
-          },
+                );
+              }
+              final canManageMembers =
+                  _currentUserRole == 'owner' || _currentUserRole == 'admin';
+
+              return Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.person_add_alt_1_outlined),
+                    tooltip: 'Tambah Anggota',
+                    onPressed: canManageMembers
+                        ? () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    AddMemberPage(workspace: widget.workspace),
+                              ),
+                            );
+                            print(result);
+
+                            if (result == true) {
+                              _refreshFiles();
+                              _fetchCurrentUserRole();
+                            }
+                          }
+                        : null,
+                  ),
+                  
+
+                  if (canManageMembers)
+                    IconButton(
+                      icon: const Icon(Icons.group_outlined),
+                      tooltip: 'Kelola Anggota',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ManageMembersPage(
+                              workspaceId: widget.workspace.id,
+                              currentUserRole: _currentUserRole,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -204,9 +241,16 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.folder_open, size: 80, color: Colors.grey.withOpacity(0.3)),
+                  Icon(
+                    Icons.folder_open,
+                    size: 80,
+                    color: Colors.grey.withOpacity(0.3),
+                  ),
                   const SizedBox(height: 16),
-                  Text('Belum ada file di sini.', style: TextStyle(color: Colors.grey)),
+                  Text(
+                    'Belum ada file di sini.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             );
@@ -222,22 +266,78 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
                 color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  side: BorderSide(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
+                  ),
                 ),
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.insert_drive_file, color: AppColors.primary),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: file.isImage
+                        ? Image.network(
+                            file.thumbnailUrl,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: AppColors.primary,
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _getFileIcon(file.mimeType),
+                              color: AppColors.primary,
+                            ),
+                          ),
                   ),
                   title: Text(
                     file.fileName,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.lightText),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                    ),
                   ),
                   subtitle: Text(
                     '${_formatSize(file.size)} • ${DateFormat('dd MMM').format(file.createdAt)}',
@@ -247,15 +347,21 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-
                       IconButton(
-                        icon: const Icon(Icons.remove_red_eye_outlined, color: Colors.blue),
+                        icon: const Icon(
+                          Icons.remove_red_eye_outlined,
+                          color: Colors.blue,
+                        ),
                         onPressed: () => _openFile(file.fullDownloadUrl),
                       ),
 
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                        onPressed: () => _showDeleteDialog(file.id, file.fileName),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                        ),
+                        onPressed: () =>
+                            _showDeleteDialog(file.id, file.fileName),
                       ),
                     ],
                   ),
@@ -271,15 +377,29 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
           if (result != null) {
             File file = File(result.files.single.path!);
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sedang mengupload...')));
-            debugPrint('Mengupload file ke Workspace ID: ${widget.workspace.id}');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Sedang mengupload...')),
+            );
+            debugPrint(
+              'Mengupload file ke Workspace ID: ${widget.workspace.id}',
+            );
             bool success = await _service.uploadFile(widget.workspace.id, file);
             if (!context.mounted) return;
             if (success) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Berhasil upload!'), backgroundColor: Colors.green));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Berhasil upload!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
               _refreshFiles();
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal upload file'), backgroundColor: Colors.red));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Gagal upload file'),
+                  backgroundColor: Colors.red,
+                ),
+              );
             }
           }
         },
