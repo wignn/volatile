@@ -4,6 +4,7 @@ import 'package:vasvault/models/auth_response.dart';
 import 'package:vasvault/models/file_item.dart';
 import 'package:vasvault/models/file_upload_response.dart';
 import 'package:vasvault/models/login_request.dart';
+import 'package:vasvault/models/profile_response.dart'; // TAMBAH INI
 import 'package:vasvault/models/register_request.dart';
 import 'package:vasvault/models/storage_summary.dart';
 import 'package:vasvault/utils/session_meneger.dart';
@@ -147,6 +148,71 @@ class ApiService {
       }
       throw Exception(serverMessage);
     }
+  }
+
+  Future<ProfileResponse> getProfile() async {
+    final session = SessionManager();
+    final accessToken = await session.getAccessToken();
+
+    final response = await dio.get(
+      '$baseURL/api/profile/me',
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': 'Bearer $accessToken',
+        },
+        validateStatus: (status) => status! < 500,
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      return ProfileResponse.fromJson(response.data);
+    }
+
+    var serverMessage =
+        'Server returned status ${response.statusCode}: ${response.statusMessage}';
+    if (response.data is Map && response.data['message'] != null) {
+      serverMessage = response.data['message'].toString();
+    }
+
+    throw Exception(serverMessage);
+  }
+
+  Future<ProfileResponse> updateProfile({
+    required String fullName,
+    String? profilePicture,
+  }) async {
+    final session = SessionManager();
+    final accessToken = await session.getAccessToken();
+
+    final response = await dio.put(
+      '$baseURL/api/profile/me',
+      data: {
+        'full_name': fullName,
+        if (profilePicture != null) 'profile_picture': profilePicture,
+      },
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': 'Bearer $accessToken',
+        },
+        validateStatus: (status) => status! < 500,
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      return ProfileResponse.fromJson(response.data);
+    }
+
+    var serverMessage =
+        'Server returned status ${response.statusCode}: ${response.statusMessage}';
+    if (response.data is Map && response.data['message'] != null) {
+      serverMessage = response.data['message'].toString();
+    }
+
+    throw Exception(serverMessage);
   }
 
   Future<StorageSummary> getStorageSummary() async {

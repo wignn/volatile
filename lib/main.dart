@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:vasvault/authWrapper.dart';
 import 'package:vasvault/bloc/login_bloc.dart';
+import 'package:vasvault/bloc/profile_bloc.dart'; // ADD THIS
 import 'package:vasvault/bloc/register_bloc.dart';
 import 'package:vasvault/bloc/vault_bloc.dart';
 import 'package:vasvault/routes.dart';
