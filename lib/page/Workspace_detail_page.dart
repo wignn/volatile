@@ -3,14 +3,17 @@ import 'package:vasvault/models/workspace_model.dart';
 import 'package:vasvault/models/workspace_file_model.dart';
 import 'package:vasvault/services/workspace_service.dart';
 import 'package:vasvault/theme/app_colors.dart';
-import 'package:intl/intl.dart';
+import 'package:vasvault/constants/app_constant.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import '../models/workspace_member_model.dart';
 import 'add_member_page.dart';
 import 'manage_members_page.dart';
 import 'package:vasvault/utils/session_meneger.dart';
+import 'package:vasvault/page/FileViewer.dart';
 
 class WorkspaceDetailPage extends StatefulWidget {
   final Workspace workspace;
@@ -43,7 +46,6 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
   Future<void> _fetchCurrentUserRole() async {
     final currentUserId = await _sessionManager.getUserId();
     if (currentUserId == null) {
-      debugPrint('User ID is null, returning early');
       return;
     }
 
@@ -51,20 +53,16 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
       final workspaceDetail = await _service.getWorkspaceDetail(
         widget.workspace.id,
       );
-      final members = workspaceDetail.members;
 
-      for (var i = 0; i < members.length; i++) {
-        debugPrint(
-          'Member[$i]: id=${members[i].id}, email=${members[i].email}, role=${members[i].role}',
-        );
+      if (workspaceDetail == null) {
+        return;
       }
+
+      final members = workspaceDetail.members;
 
       final userMember = members.firstWhere(
         (member) => member.id == currentUserId,
         orElse: () {
-          debugPrint(
-            'User tidak ditemukan di members, menggunakan default viewer',
-          );
           return WorkspaceMember(id: currentUserId, email: '', role: 'viewer');
         },
       );
@@ -74,22 +72,8 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
           _currentUserRole = userMember.role;
         });
       }
-    } catch (e, stackTrace) {
-      debugPrint("Gagal fetch role: $e");
-      debugPrint("StackTrace: $stackTrace");
-    }
-  }
-
-  Future<void> _openFile(String url) async {
-    final Uri uri = Uri.parse(url);
-    debugPrint("Mencoba buka URL: $url");
-
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak bisa membuka file ini')),
-        );
-      }
+    } catch (_) {
+      // Handle silently
     }
   }
 
@@ -132,19 +116,126 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
     );
   }
 
+  Future<void> _downloadFile(WorkspaceFile file) async {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Mengunduh file...')));
+
+    try {
+      final token = await _sessionManager.getAccessToken();
+      final request = http.Request('GET', Uri.parse(file.fileUrl));
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['x-api-key'] = AppConstants.tokenKey;
+
+      final response = await http.Client().send(request);
+
+      if (response.statusCode == 200) {
+        final directory = await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/${file.fileName}';
+        final localFile = File(filePath);
+
+        final List<int> bytes = [];
+        await for (final chunk in response.stream) {
+          bytes.addAll(chunk);
+        }
+        await localFile.writeAsBytes(bytes);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('File disimpan: ${file.fileName}'),
+              backgroundColor: Colors.green,
+              action: SnackBarAction(
+                label: 'Buka',
+                textColor: Colors.white,
+                onPressed: () => OpenFilex.open(filePath),
+              ),
+            ),
+          );
+        }
+      } else {
+        throw Exception('Download gagal: ${response.statusCode}');
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal mengunduh file'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showRenameDialog(WorkspaceFile file) {
+    final controller = TextEditingController(text: file.fileName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Nama File'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Nama File',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty && newName != file.fileName) {
+                final success = await _service.renameFile(file.id, newName);
+                if (mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nama file berhasil diubah'),
+                      ),
+                    );
+                    _refreshFiles();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Gagal mengubah nama file'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   IconData _getFileIcon(String mimeType) {
     if (mimeType.startsWith('image/')) return Icons.image;
     if (mimeType.startsWith('video/')) return Icons.video_file;
     if (mimeType.startsWith('audio/')) return Icons.audio_file;
     if (mimeType.contains('pdf')) return Icons.picture_as_pdf;
-    if (mimeType.contains('word') || mimeType.contains('document'))
+    if (mimeType.contains('word') || mimeType.contains('document')) {
       return Icons.description;
-    if (mimeType.contains('excel') || mimeType.contains('spreadsheet'))
+    }
+    if (mimeType.contains('excel') || mimeType.contains('spreadsheet')) {
       return Icons.table_chart;
+    }
     if (mimeType.contains('zip') ||
         mimeType.contains('rar') ||
-        mimeType.contains('archive'))
+        mimeType.contains('archive')) {
       return Icons.folder_zip;
+    }
     return Icons.insert_drive_file;
   }
 
@@ -206,7 +297,6 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
                                     AddMemberPage(workspace: widget.workspace),
                               ),
                             );
-                            print(result);
 
                             if (result == true) {
                               _refreshFiles();
@@ -267,115 +357,190 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
             );
           }
 
-          return ListView.builder(
+          return GridView.builder(
             padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.85,
+            ),
             itemCount: files.length,
             itemBuilder: (context, index) {
               final file = files[index];
-              return Card(
-                elevation: 0,
-                color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : AppColors.lightBorder,
+              final isAdminOrOwner =
+                  _currentUserRole == 'owner' || _currentUserRole == 'admin';
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          FileViewerPage(file: file.toLatestFile()),
+                    ),
+                  );
+                },
+                child: Card(
+                  elevation: 2,
+                  color: isDark
+                      ? AppColors.darkSurface
+                      : AppColors.lightSurface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: file.isImage
-                        ? Image.network(
-                            file.thumbnailUrl,
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.broken_image,
-                                  color: AppColors.primary,
-                                ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Center(
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Thumbnail area
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          color: isDark ? Colors.grey[800] : Colors.grey[200],
+                          child: file.isImage
+                              ? Image.network(
+                                  file.thumbnailUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 48,
+                                        color: AppColors.primary,
+                                      ),
+                                    );
+                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            value:
+                                                loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                          .cumulativeBytesLoaded /
+                                                      loadingProgress
+                                                          .expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        );
+                                      },
+                                )
+                              : Center(
+                                  child: Icon(
+                                    _getFileIcon(file.mimeType),
+                                    size: 48,
+                                    color: AppColors.primary,
                                   ),
                                 ),
-                              );
-                            },
-                          )
-                        : Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              _getFileIcon(file.mimeType),
-                              color: AppColors.primary,
-                            ),
-                          ),
-                  ),
-                  title: Text(
-                    file.fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.darkText : AppColors.lightText,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '${_formatSize(file.size)} • ${DateFormat('dd MMM').format(file.createdAt)}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.remove_red_eye_outlined,
-                          color: Colors.blue,
                         ),
-                        onPressed: () => _openFile(file.fullDownloadUrl),
                       ),
-
-                      if (_currentUserRole == 'owner' ||
-                          _currentUserRole == 'admin')
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                          ),
-                          onPressed: () =>
-                              _showDeleteDialog(file.id, file.fileName),
+                      // File info area
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    file.fileName,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark
+                                          ? AppColors.darkText
+                                          : AppColors.lightText,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _formatSize(file.size),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // 3-dot menu
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert,
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                                size: 20,
+                              ),
+                              padding: EdgeInsets.zero,
+                              onSelected: (value) {
+                                switch (value) {
+                                  case 'download':
+                                    _downloadFile(file);
+                                    break;
+                                  case 'rename':
+                                    _showRenameDialog(file);
+                                    break;
+                                  case 'delete':
+                                    _showDeleteDialog(file.id, file.fileName);
+                                    break;
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'download',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.download, size: 20),
+                                      SizedBox(width: 12),
+                                      Text('Download'),
+                                    ],
+                                  ),
+                                ),
+                                if (isAdminOrOwner) ...[
+                                  const PopupMenuItem(
+                                    value: 'rename',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit, size: 20),
+                                        SizedBox(width: 12),
+                                        Text('Edit Nama'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.delete,
+                                          size: 20,
+                                          color: Colors.red,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Hapus',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -395,9 +560,6 @@ class _WorkspaceDetailPageState extends State<WorkspaceDetailPage> {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Sedang mengupload...')),
-                  );
-                  debugPrint(
-                    'Mengupload file ke Workspace ID: ${widget.workspace.id}',
                   );
                   bool success = await _service.uploadFile(
                     widget.workspace.id,

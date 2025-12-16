@@ -33,7 +33,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     final expired = TokenHelper.isExpired(accessToken);
     if (expired) {
       try {
-        final response = await _apiService.refreshToken();
+        final response = await _apiService.refreshToken(refreshToken);
         await session.saveSession(
           response.accessToken,
           response.refreshToken,
@@ -44,8 +44,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _goTo(MyRoute.login.name);
       }
     } else {
-      Duration remaining = TokenHelper.getRemainingTime(accessToken);
-      debugPrint("Token masih aktif, sisa waktu: ${remaining.inMinutes} menit");
       _goTo(MyRoute.home.name);
     }
   }
@@ -57,9 +55,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
